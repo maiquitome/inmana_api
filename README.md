@@ -1,6 +1,6 @@
 <div align="center">
   <img alt="refrigerator" height="150" src=".github/frigorifico.svg">
-  <h1><strong>INMANA API</strong><br>Inventory Management</h1>
+  <h1><strong>INMANA API</strong><br>&nbsp;Inventory Management</h1>
 
   ### 👨‍🍳 Loss prevention with intelligent _best before date_ management in a restaurant 👨‍🍳
   <a href="https://nextlevelweek.com/">This project was created during Rockeseat's NLW event</a>
