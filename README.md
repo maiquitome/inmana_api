@@ -106,14 +106,12 @@ $ mix ecto.create
 
 ### Creating welcomer
 
-About welcomer
 * Receive a name and age from the user
 * We have to treat the username for wrong entries, like "BaNaNa", "banana \n"
 * If the user calls "Banana" and is 42 years old, he receives a special message
 * If the user is of age, he receives a normal message
 * If the user is a minor, we return an error
 
-Creating the welcomer file
 ```elixir
 # lib/inmana/welcome.ex
 
