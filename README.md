@@ -50,7 +50,7 @@ Made with ♥ by Maiqui Tomé 😀
 
 </div>
 
-* [Video 1 - Reinforcing concepts](#Video-1-Reinforcing-concepts)
+* [VIDEO 1: Reinforcing concepts](#Video-1-Reinforcing-concepts)
   - [Creating the project](#Creating-the-project)
   - [Creating the database](#Creating-the-database)
   - [Install Credo](#Install-credo)
@@ -58,7 +58,7 @@ Made with ♥ by Maiqui Tomé 😀
   - [Creating a welcome route](#Creating-a-welcome-route)
   - [Creating the controller](#Creating-the-controller)
   - [Welcomer final result](#Welcomer-final-result)
-* [Video 2 - Creating the restaurant](#Video-2-Creating-the-restaurant)
+* [VIDEO 2: Creating the restaurant](#Video-2-Creating-the-restaurant)
   - [Restaurant migration](#Restaurant-migration)
   - [Restaurant schema](#Restaurant-schema)
   - [Restaurant create](#Restaurant-create)
@@ -70,7 +70,7 @@ Made with ♥ by Maiqui Tomé 😀
 
 <div align="center">
 
-  # VIDEO 1  Reinforcing concepts
+  # VIDEO 1: Reinforcing concepts
 
 </div>
 
@@ -198,7 +198,7 @@ end
 
 <div align="center">
 
-  # VIDEO 2 Creating the restaurant
+  # VIDEO 2: Creating the restaurant
 
 </div>
 
