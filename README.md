@@ -50,30 +50,42 @@ Made with ♥ by Maiqui Tomé 😀
 
 </div>
 
-- [Creating the project](#Creating-the-project)
-  - [Project creation](#Project-creation)
-  - [Database creation](#Database-creation)
-  - [Install Credo](#Install-credo)
-- [Creating welcomer](#Creating-welcomer)
-  - [About welcomer](#About-welcomer)
-  - [Creating the welcomer file](#Creating-the-welcomer-file)
-- [Creating a welcome route](#Creating-a-welcome-route)
-  - [Creating a GET](#Creating-a-GET)
-  - [Creating the controller](#Creating-the-controller)
-  - [Welcomer final result](#Welcomer-final-result)
-
+* [Video 1 - NLW5](#Video-1-NLW5)
+  - [Creating the project](#Creating-the-project)
+    - [Command to create our project](#Command-to-create-our-project)
+    - [Command to create the database](#Command-to-create-the-database)
+    - [Install Credo](#Install-credo)
+  - [Creating welcomer](#Creating-welcomer)
+    - [About welcomer](#About-welcomer)
+    - [Creating the welcomer file](#Creating-the-welcomer-file)
+  - [Creating a welcome route](#Creating-a-welcome-route)
+    - [Creating a GET](#Creating-a-GET)
+    - [Creating the controller](#Creating-the-controller)
+    - [Welcomer final result](#Welcomer-final-result)
+* [Video 2 NLW5](#Video-2-NLW5)
+  - [Creating the restaurant](#Creating-the-restaurant)
+      - [Restaurant migration](#Restaurant-migration)
+      - [Restaurant schema](#Restaurant-schema)
+      - [Restaurant create](#Restaurant-create)
+      - [Restaurant fallback controller](#Restaurant-fallback-controller)
+      - [Restaurant error view](#Restaurant-error-view)
+      - [Restaurant view](#Restaurant-view)
+      - [Restaurant route](#Restaurant-route)
+      - [Create restaurant facade](#Create-restaurant-facade)
 
 <div align="center">
 
-  ## Creating the project
+  # Video 1 NLW5
 
 </div>
 
-### Project creation
+## Creating the project
+
+### Command to create our project
 ```bash
 $ mix phx.new inmana --no-html --no-webpack
 ```
-### Database creation
+### Command to create the database
 ```bash
 $ cd inmana
 ```
@@ -197,14 +209,229 @@ end
 
 <img src=".github/final_result_welcomer.gif">
 
+<div align="center">
+
+  # Video 2 NLW5
+
+</div>
+
+## Creating the restaurant
 
 
+### Restaurant migration
 
+Command to create the restaurant migration
+```elixir
+$ mix ecto.gen.migration create_restaurants_table
+```
 
+Changing the restaurant migration file
+```elixir
+# priv/repo/migrations/20210420113131_create_restaurants_table.exs
 
+defmodule Inmana.Repo.Migrations.CreateRestaurantsTable do
+  use Ecto.Migration
 
+  def change do
+    create table(:restaurants) do
+      add :email, :string
+      add :name,  :string
 
+      timestamps()
+    end
 
+    create unique_index(:restaurants, [:email])
+  end
+end
+```
+
+Setting up UUID
+```elixir
+# config/config.exs
+
+config :inmana,
+  ecto_repos: [Inmana.Repo]
+
+# after the above existing code, add this code:
+
+config :inmana, Inmana.Repo,
+  migration_primary_key: [type: :binary_id],
+  migration_foreign_key: [type: :binary_id]
+```
+
+Command to run the restaurant migration
+```bash
+$ mix ecto.migrate
+```
+
+### Restaurant schema
+```elixir
+# lib/inmana/restaurant.ex
+
+defmodule Inmana.Restaurant do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @primary_key {:id, :binary_id, autogenerate: true}
+
+  @required_params [:email, :name]
+
+  # By default all keys except the :__struct__ key are encoded.
+  # then we need to tell Jason.Encoder to render the fields to json
+  @derive {Jason.Encoder, only: @required_params ++ [:id]}
+
+  # iex> Jason.encode(%{name: "Maiqui", last_name: "Tomé"})
+  # {:ok, "{\"last_name\":\"Tomé\",\"name\":\"Maiqui\"}"}
+  #
+  # iex> Jason.encode!(%{name: "Maiqui", last_name: "Tomé"})
+  # "{\"last_name\":\"Tomé\",\"name\":\"Maiqui\"}"
+  #
+  # iex> Jason.encode!(%Inmana.Restaurant{})
+  # "{\"email\":null,\"name\":null,\"id\":null}"
+
+  schema "restaurants" do
+    field :email, :string
+    field :name, :string
+
+    timestamps()
+  end
+
+  def changeset(params) do
+    %__MODULE__{}
+    # To create a changeset using the schema, we are going to use Ecto.Changeset.cast/3
+    |> cast(params, @required_params)
+    |> validate_required(@required_params)
+    |> validate_length(:name, min: 2)
+    |> validate_format(:email, ~r/@/)
+    |> unique_constraint([:email])
+  end
+end
+```
+
+### Restaurant create
+```elixir
+# lib/inmana/restaurants/create.ex
+
+defmodule Inmana.Restaurants.Create do
+  alias Inmana.{Repo, Restaurant}
+
+  def call(params) do
+    params
+    |> Restaurant.changeset()
+    |> Repo.insert()
+    |> handle_insert()
+  end
+
+  defp handle_insert({:ok, %Restaurant{}} = result), do: result
+
+  defp handle_insert({:error, result}) do
+    {:error, %{result: result, status: :bad_request}}
+  end
+end
+```
+### Restaurant controller
+```elixir
+# lib/inmana_web/controllers/restaurants_controller.ex
+
+defmodule InmanaWeb.RestaurantsController do
+  use InmanaWeb, :controller
+
+  alias Inmana.Restaurant
+  alias InmanaWeb.FallbackController
+
+  action_fallback FallbackController
+
+  def create(conn, params) do
+    with {:ok, %Restaurant{} = restaurant} <- Inmana.create_restaurant(params) do
+      conn
+      |> put_status(:created)
+      |> render("create.json", restaurant: restaurant)
+    end
+  end
+end
+```
+
+### Restaurant fallback controller
+```elixir
+# lib/inmana_web/controllers/fallback_controller.ex
+
+defmodule InmanaWeb.FallbackController do
+  use InmanaWeb, :controller
+
+  def call(conn, {:error, %{result: result, status: status}}) do
+    conn
+    |> put_status(status)
+    |> put_view(InmanaWeb.ErrorView)
+    |> render("error.json", result: result)
+  end
+end
+```
+
+### Restaurant error view
+```elixir
+# lib/inmana_web/views/error_view.ex
+
+defmodule InmanaWeb.ErrorView do
+  use InmanaWeb, :view
+
+  def template_not_found(template, _assigns) do
+    %{errors: %{detail: Phoenix.Controller.status_message_from_template(template)}}
+  end
+
+  def render("error.json", %{result: %Ecto.Changeset{} = changeset}) do
+    %{message: translate_errors(changeset)}
+  end
+
+  defp translate_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+  end
+end
+```
+
+### Restaurant view
+```elixir
+# lib/inmana_web/views/restaurants_view.ex
+
+defmodule InmanaWeb.RestaurantsView do
+  use InmanaWeb, :view
+
+  def render("create.json", %{restaurant: restaurant}) do
+    %{
+      message: "Restaurant created!",
+      restaurant: restaurant
+    }
+  end
+end
+```
+
+### Restaurant route
+```elixir
+# lib/inmana_web/router.ex
+
+scope "/api", InmanaWeb do
+    pipe_through :api
+
+    get "/", WelcomeController, :index
+
+    # add this code:
+    post "/restaurants", RestaurantsController, :create
+  end
+```
+
+### Create restaurant facade
+```elixir
+# lib/inmana.ex
+
+defmodule Inmana do
+  alias Inmana.Restaurants.Create
+
+  defdelegate create_restaurant(params), to: Create, as: :call
+end
+```
 
 <br />
 
