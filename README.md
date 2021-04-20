@@ -52,15 +52,11 @@ Made with ♥ by Maiqui Tomé 😀
 
 * [Video 1 - Reinforcing concepts](#Video-1-Reinforcing-concepts)
   - [Creating the project](#Creating-the-project)
-    - [Command to create our project](#Command-to-create-our-project)
-    - [Command to create the database](#Command-to-create-the-database)
-    - [Install Credo](#Install-credo)
+  - [Creating the database](#Creating-the-database)
+  - [Install Credo](#Install-credo)
   - [Creating welcomer](#Creating-welcomer)
-    - [About welcomer](#About-welcomer)
-    - [Creating the welcomer file](#Creating-the-welcomer-file)
   - [Creating a welcome route](#Creating-a-welcome-route)
-    - [Creating a GET](#Creating-a-GET)
-    - [Creating the controller](#Creating-the-controller)
+  - [Creating the controller](#Creating-the-controller)
   - [Welcomer final result](#Welcomer-final-result)
 * [Video 2 - Creating the restaurant](#Video-2-Creating-the-restaurant)
   - [Restaurant migration](#Restaurant-migration)
@@ -74,17 +70,15 @@ Made with ♥ by Maiqui Tomé 😀
 
 <div align="center">
 
-  # Video 1 Reinforcing concepts
+  # VIDEO 1  Reinforcing concepts
 
 </div>
 
-## Creating the project
-
-### Command to create our project
+### Creating the project
 ```bash
 $ mix phx.new inmana --no-html --no-webpack
 ```
-### Command to create the database
+### Creating the database
 ```bash
 $ cd inmana
 ```
@@ -110,16 +104,16 @@ $ mix ecto.create
   $ mix credob
   ```
 
-## Creating welcomer
+### Creating welcomer
 
-### About welcomer
+About welcomer
 * Receive a name and age from the user
 * We have to treat the username for wrong entries, like "BaNaNa", "banana \n"
 * If the user calls "Banana" and is 42 years old, he receives a special message
 * If the user is of age, he receives a normal message
 * If the user is a minor, we return an error
 
-### Creating the welcomer file
+Creating the welcomer file
 ```elixir
 # lib/inmana/welcome.ex
 
@@ -154,9 +148,7 @@ defmodule Inmana.Welcomer do
 end
 ```
 
-## Creating a welcome route
-
-### Creating a GET
+### Creating a welcome route
 ```elixir
 #lib/inmana_web/router.ex
 
@@ -201,9 +193,11 @@ end
 
 <img src=".github/final_result_welcomer.gif">
 
+
+
 <div align="center">
 
-  # Video 2 Creating the restaurant
+  # VIDEO 2 Creating the restaurant
 
 </div>
 
