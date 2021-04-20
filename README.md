@@ -86,23 +86,26 @@ $ cd inmana
 $ mix ecto.create
 ```
 ### Install Credo
-- https://github.com/rrrene/credo
-- in _mix.exs_ add:
-  ```elixir
-  defp deps do
-    [
-      {:credo, "~> 1.5", only: [:dev, :test], runtime: false}
-    ]
-  end
-  ```
-- and run:
-  ```
-  $ mix deps.get
+https://github.com/rrrene/credo
 
-  $ mix credo.gen.config
+```elixir
+# mix.exs
 
-  $ mix credob
-  ```
+defp deps do
+  [
+    {:credo, "~> 1.5", only: [:dev, :test], runtime: false}
+  ]
+end
+```
+```bash
+$ mix deps.get
+```
+```bash
+$ mix credo.gen.config
+```
+```bash
+$ mix credo
+```
 
 ### Creating welcomer
 
