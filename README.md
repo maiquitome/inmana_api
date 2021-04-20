@@ -50,7 +50,7 @@ Made with ♥ by Maiqui Tomé 😀
 
 </div>
 
-* [Video 1 - NLW5](#Video-1-NLW5)
+* [Video 1 - Reinforcing concepts](#Video-1-Reinforcing-concepts)
   - [Creating the project](#Creating-the-project)
     - [Command to create our project](#Command-to-create-our-project)
     - [Command to create the database](#Command-to-create-the-database)
@@ -61,21 +61,20 @@ Made with ♥ by Maiqui Tomé 😀
   - [Creating a welcome route](#Creating-a-welcome-route)
     - [Creating a GET](#Creating-a-GET)
     - [Creating the controller](#Creating-the-controller)
-    - [Welcomer final result](#Welcomer-final-result)
-* [Video 2 NLW5](#Video-2-NLW5)
-  - [Creating the restaurant](#Creating-the-restaurant)
-      - [Restaurant migration](#Restaurant-migration)
-      - [Restaurant schema](#Restaurant-schema)
-      - [Restaurant create](#Restaurant-create)
-      - [Restaurant fallback controller](#Restaurant-fallback-controller)
-      - [Restaurant error view](#Restaurant-error-view)
-      - [Restaurant view](#Restaurant-view)
-      - [Restaurant route](#Restaurant-route)
-      - [Create restaurant facade](#Create-restaurant-facade)
+  - [Welcomer final result](#Welcomer-final-result)
+* [Video 2 - Creating the restaurant](#Video-2-Creating-the-restaurant)
+  - [Restaurant migration](#Restaurant-migration)
+  - [Restaurant schema](#Restaurant-schema)
+  - [Restaurant create](#Restaurant-create)
+  - [Restaurant fallback controller](#Restaurant-fallback-controller)
+  - [Restaurant error view](#Restaurant-error-view)
+  - [Restaurant view](#Restaurant-view)
+  - [Restaurant route](#Restaurant-route)
+  - [Create restaurant facade](#Create-restaurant-facade)
 
 <div align="center">
 
-  # Video 1 NLW5
+  # Video 1 Reinforcing concepts
 
 </div>
 
@@ -110,11 +109,8 @@ $ mix ecto.create
 
   $ mix credob
   ```
-<div align="center">
 
-  ## Creating welcomer
-
-</div>
+## Creating welcomer
 
 ### About welcomer
 * Receive a name and age from the user
@@ -158,11 +154,7 @@ defmodule Inmana.Welcomer do
 end
 ```
 
-<div align="center">
-
-  ## Creating a welcome route
-
-</div>
+## Creating a welcome route
 
 ### Creating a GET
 ```elixir
@@ -211,12 +203,9 @@ end
 
 <div align="center">
 
-  # Video 2 NLW5
+  # Video 2 Creating the restaurant
 
 </div>
-
-## Creating the restaurant
-
 
 ### Restaurant migration
 
