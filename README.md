@@ -88,7 +88,10 @@ Made with ♥ by Maiqui Tomé 😀
       - [Expiration notification](#Expiration-notification)
       - [Expiration email](#Expiration-email)
       - [Sending email](#Sending-email)
-
+* [VIDEO 4: Tasks - Genservers - Supervisors](#Video-4-Tasks-Genservers-Supervisors)
+  - [Task](#Task)
+  - [Genservers](#Genservers)
+  - [Supervisor](#Supervisor)
 
 <div align="center">
 
@@ -877,6 +880,115 @@ iex> Inmana.Supplies.ExpirationNotification.send()
 ```
 visit: http://localhost:4000/sent_emails
 
+
+
+
+
+<div align="center">
+
+  # VIDEO 4: Tasks Genservers Supervisors
+
+</div>
+
+
+### Tasks
+```elixir
+# lib/inmana/supplies/expiration_notification
+
+defmodule Inmana.Supplies.ExpirationNotification do
+  alias Inmana.Mailer
+  alias Inmana.Supplies.{ExpirationEmail, GetByExpiration}
+
+  def send do
+    data = GetByExpiration.call()
+
+    # Enum.each(data, fn {to_email, supplies} ->
+    #   to_email
+    #   |> ExpirationEmail.create(supplies)
+    #   |> Mailer.deliver_later!()
+    # end)
+
+    data
+    |> Task.async_stream(fn {to_email, supplies} -> send_email(to_email, supplies) end)
+    |> Stream.run()
+  end
+
+  defp send_email(to_email, supplies) do
+    to_email
+    |> ExpirationEmail.create(supplies)
+    |> Mailer.deliver_later!()
+  end
+end
+```
+
+### Genservers
+```elixir
+# lib/inmana/supplies/scheduler.ex
+
+defmodule Inmana.Supplies.Scheduler do
+  use GenServer
+
+  alias Inmana.Supplies.ExpirationNotification
+
+  # CLIENT
+  def start_link(_state) do
+    GenServer.start_link(__MODULE__, %{})
+  end
+
+  # SERVER
+
+  @impl true
+  def init(state \\ %{}) do
+    schedule_notification()
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_info(:generate, state) do
+    ExpirationNotification.send()
+
+    schedule_notification()
+
+    {:noreply, state}
+  end
+
+  defp schedule_notification do
+    Process.send_after(self(), :generate, 1000 * 60 * 60 * 24 * 7)
+  end
+
+  # async: Que não acontece juntamente com outra coisa.
+  #
+  # def handle_cast({:put, key, value}, state) do
+  #   {:noreply, Map.put(state, key, value)}
+  # end
+
+  # sync: Que acontece exatamente ao mesmo tempo que outra coisa.
+  #
+  # def handle_call({:get, key}, _from, state) do
+  #   {:reply, Map.get(state, key), state}
+  # end
+end
+```
+
+### Supervisor
+```elixir
+# lib/inmana/application.ex
+
+def start(_type, _args) do
+  children = [
+    Inmana.Repo,
+    InmanaWeb.Telemetry,
+    {Phoenix.PubSub, name: Inmana.PubSub},
+    InmanaWeb.Endpoint,
+
+    # add this line:
+    Inmana.Supplies.Scheduler
+  ]
+
+  opts = [strategy: :one_for_one, name: Inmana.Supervisor]
+  Supervisor.start_link(children, opts)
+end
+```
 
 
 <br />
