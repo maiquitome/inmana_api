@@ -25,6 +25,7 @@
 * Elixir Programming Language
 * Phoenix Web Framework
 * Credo - a static code analysis tool for the Elixir language with a focus on teaching and code consistency.
+* Bamboo - to send emails
 
 <br>
 
@@ -62,11 +63,32 @@ Made with ♥ by Maiqui Tomé 😀
   - [Restaurant migration](#Restaurant-migration)
   - [Restaurant schema](#Restaurant-schema)
   - [Restaurant create](#Restaurant-create)
-  - [Restaurant fallback controller](#Restaurant-fallback-controller)
-  - [Restaurant error view](#Restaurant-error-view)
-  - [Restaurant view](#Restaurant-view)
-  - [Restaurant route](#Restaurant-route)
-  - [Create restaurant facade](#Create-restaurant-facade)
+  - [Restaurant facade](#Restaurant-facade)
+    - WEB
+      - [Restaurant controller](#Restaurant-controller)
+      - [Fallback controller](#Fallback-controller)
+      - [Error view](#Error-view)
+      - [Restaurant view](#Restaurant-view)
+      - [Restaurant route](#Restaurant-route)
+* [VIDEO 3: Creating the supplies](#Video-3-Creating-the-supplies)
+  - [Supplies migration](#Supplies-migration)
+  - [Supplies schema](#Supplies-schema)
+  - [Supplies create](#Supplies-create)
+  - [Supplies get](#Supplies-get)
+  - [Supplies get by expiration](#Supplies-get-by-expiration)
+  - [Supplies facade](#Supplies-facade)
+    - WEB
+      - [Supplies controller](#Supplies-controller)
+      - [Supplies route](#Supplies-route)
+      - [Supplies view](#Supplies-view)
+      - [Supplies error view](#Supplies-error-view)
+    - EMAIL
+      - [Install bamboo](#Install-bamboo)
+      - [Mailer](#Mailer)
+      - [Expiration notification](#Expiration-notification)
+      - [Expiration email](#Expiration-email)
+      - [Sending email](#Sending-email)
+
 
 <div align="center">
 
@@ -313,6 +335,19 @@ defmodule Inmana.Restaurants.Create do
   end
 end
 ```
+
+### Restaurant facade
+```elixir
+# lib/inmana.ex
+
+defmodule Inmana do
+  alias Inmana.Restaurants.Create
+
+  defdelegate create_restaurant(params), to: Create, as: :call
+end
+```
+
+
 ### Restaurant controller
 ```elixir
 # lib/inmana_web/controllers/restaurants_controller.ex
@@ -335,7 +370,7 @@ defmodule InmanaWeb.RestaurantsController do
 end
 ```
 
-### Restaurant fallback controller
+### Fallback controller
 ```elixir
 # lib/inmana_web/controllers/fallback_controller.ex
 
@@ -351,7 +386,7 @@ defmodule InmanaWeb.FallbackController do
 end
 ```
 
-### Restaurant error view
+### Error view
 ```elixir
 # lib/inmana_web/views/error_view.ex
 
@@ -406,16 +441,443 @@ scope "/api", InmanaWeb do
   end
 ```
 
-### Create restaurant facade
+
+
+<div align="center">
+
+  # VIDEO 3: Creating the supplies
+
+</div>
+
+
+
+### Supplies migration
+
+Command to create the supplies migration
+```elixir
+$ mix ecto.gen.migration create_supplies_table
+```
+
+Changing the supplies migration file
+```elixir
+# priv/repo/migrations/20210421163733_create_supplies_table.exs
+
+defmodule Inmana.Repo.Migrations.CreateSuppliesTable do
+  use Ecto.Migration
+
+  def change do
+    create table(:supplies) do
+      add :description,     :string
+      add :expiration_date, :date
+      add :responsible,     :string
+      add :restaurant_id,   references(:restaurants, type: :binary_id)
+
+      timestamps()
+    end
+  end
+end
+```
+
+Command to run the supplies migration
+```bash
+$ mix ecto.migrate
+```
+
+### Supplies schema
+```elixir
+# lib/inmana/supply.ex
+
+defmodule Inmana.Supply do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
+
+  @required_params [
+    :description,
+    :expiration_date,
+    :responsible,
+    :restaurant_id
+  ]
+
+  @derive {Jason.Encoder, only: @required_params ++ [:id]}
+
+  schema "supplies" do
+    field :description, :string
+    field :expiration_date, :date
+    field :responsible, :string
+
+    belongs_to :restaurant, Inmana.Restaurant
+
+    timestamps()
+  end
+
+  def changeset(params) do
+    %__MODULE__{}
+    # cast - change the data
+    |> cast(params, @required_params)
+    |> validate_required(@required_params)
+    |> validate_length(:description, min: 2)
+    |> validate_length(:responsible, min: 2)
+  end
+end
+```
+
+```elixir
+# lib/inmana/restaurant.ex
+
+# in this code:
+schema "restaurants" do
+    field :email, :string
+    field :name, :string
+
+    # add this line:
+    has_many :supplies, Inmana.Supply
+
+    timestamps()
+  end
+```
+
+### Supplies create
+```elixir
+# lib/inmana/supplies/create.ex
+
+defmodule Inmana.Supplies.Create do
+  alias Inmana.{Repo, Supply}
+
+  def call(params) do
+    params
+    |> Supply.changeset()
+    |> Repo.insert()
+    |> handle_insert()
+  end
+
+  defp handle_insert({:ok, %Supply{}} = result), do: result
+
+  defp handle_insert({:error, result}) do
+    {:error, %{result: result, status: :bad_request}}
+  end
+end
+```
+
+### Supplies get
+Looking at all the supplies
+```bash
+iex> Inmana.Repo.all(Inmana.Supply)
+[debug] QUERY OK source="supplies" db=10.8ms decode=0.9ms queue=1.1ms idle=1647.0ms
+SELECT s0."id", s0."description", s0."expiration_date", s0."responsible", s0."restaurant_id", s0."inserted_at", s0."updated_at" FROM "supplies" AS s0 []
+[
+  %Inmana.Supply{
+    __meta__: #Ecto.Schema.Metadata<:loaded, "supplies">,
+    description: "Molho de tomate",
+    expiration_date: ~D[2021-04-16],
+    id: "ef70baa7-1ab7-49df-a10c-6de00b21568d",
+    inserted_at: ~N[2021-04-21 18:01:31],
+    responsible: "Banana man",
+    restaurant: #Ecto.Association.NotLoaded<association :restaurant is not loaded>,
+    restaurant_id: "bd1ec1b9-f8a1-4692-8811-f9035d4e8112",
+    updated_at: ~N[2021-04-21 18:01:31]
+  },
+...
+```
+Looking at supply with id: "ef70baa7-1ab7-49df-a10c-6de00b21568d"
+```bash
+iex> Inmana.Repo.get(Inmana.Supply, "ef70baa7-1ab7-49df-a10c-6de00b21568d")
+[debug] QUERY OK source="supplies" db=1.4ms queue=1.4ms idle=1750.3ms
+SELECT s0."id", s0."description", s0."expiration_date", s0."responsible", s0."restaurant_id", s0."inserted_at", s0."updated_at" FROM "supplies" AS s0 WHERE (s0."id" = $1) [<<239, 112, 186, 167, 26, 183, 73, 223, 161, 12, 109, 224, 11, 33, 86, 141>>]
+%Inmana.Supply{
+  __meta__: #Ecto.Schema.Metadata<:loaded, "supplies">,
+  description: "Molho de tomate",
+  expiration_date: ~D[2021-04-16],
+  id: "ef70baa7-1ab7-49df-a10c-6de00b21568d",
+  inserted_at: ~N[2021-04-21 18:01:31],
+  responsible: "Banana man",
+  restaurant: #Ecto.Association.NotLoaded<association :restaurant is not loaded>,
+  restaurant_id: "bd1ec1b9-f8a1-4692-8811-f9035d4e8112",
+  updated_at: ~N[2021-04-21 18:01:31]
+}
+```
+Searching for the supply with the id that does not exist
+is returned _nil_
+```bash
+iex> Inmana.Repo.get(Inmana.Supply, "ef70baa7-1ab7-49df-a10c-6de00b77777d")
+[debug] QUERY OK source="supplies" db=2.1ms queue=0.1ms idle=964.3ms
+SELECT s0."id", s0."description", s0."expiration_date", s0."responsible", s0."restaurant_id", s0."inserted_at", s0."updated_at" FROM "supplies" AS s0 WHERE (s0."id" = $1) [<<239, 112, 186, 167, 26, 183, 73, 223, 161, 12, 109, 224, 11, 119, 119, 125>>]
+nil
+```
+```elixir
+# lib/inmana/supplies/get.ex
+
+defmodule Inmana.Supplies.Get do
+  alias Inmana.{Repo, Supply}
+
+  # FLOW CONTROL OPTION:
+  #
+  # def call(uuid) do
+  #   case Repo.get(Supply, uuid) do
+  #     nil -> {:error, %{result: "Supply not found", status: :not_found}}
+  #     supply -> {:ok, supply}
+  #   end
+  # end
+
+  def call(uuid) do
+    Supply
+    |> Repo.get(uuid)
+    |> handle_get()
+  end
+
+  defp handle_get(%Supply{} = result), do: {:ok, result}
+
+  defp handle_get(nil) do
+    {:error, %{result: "Supply not found", status: :not_found}}
+  end
+end
+```
+
+### Supplies get by expiration
+```elixir
+defmodule Inmana.Supplies.GetByExpiration do
+  import Ecto.Query
+
+  alias Inmana.{Repo, Restaurant, Supply}
+
+  def call do
+    today = Date.utc_today()
+    beginning_of_week = Date.beginning_of_week(today)
+    end_of_week = Date.end_of_week(today)
+
+    query =
+      from supply in Supply,
+        where:
+          supply.expiration_date >= ^beginning_of_week and
+            supply.expiration_date <= ^end_of_week,
+        preload: [:restaurant]
+
+    query
+    |> Repo.all()
+    |> Enum.group_by(fn %Supply{restaurant: %Restaurant{email: email}} -> email end)
+  end
+end
+```
+
+### Supplies facade
 ```elixir
 # lib/inmana.ex
 
 defmodule Inmana do
-  alias Inmana.Restaurants.Create
+  alias Inmana.Restaurants.Create, as: RestaurantCreate
+  alias Inmana.Supplies.Create, as: SupplyCreate
+  alias Inmana.Supplies.Get, as: SupplyGet
 
-  defdelegate create_restaurant(params), to: Create, as: :call
+  defdelegate create_restaurant(params),
+    to: RestaurantCreate,
+    as: :call
+
+  defdelegate create_supply(params),
+    to: SupplyCreate,
+    as: :call
+
+  defdelegate get_supply(params),
+    to: SupplyGet,
+    as: :call
 end
 ```
+
+### Supplies controller
+```elixir
+# lib/inmana_web/controllers/supplies_controller.ex
+
+defmodule InmanaWeb.SuppliesController do
+  use InmanaWeb, :controller
+
+  alias Inmana.Supply
+  alias InmanaWeb.FallbackController
+
+  action_fallback FallbackController
+
+  def create(conn, params) do
+    with {:ok, %Supply{} = supply} <- Inmana.create_supply(params) do
+      conn
+      |> put_status(:created)
+      |> render("create.json", supply: supply)
+    end
+  end
+
+  def show(conn, %{"id" => uuid}) do
+    with {:ok, %Supply{} = supply} <- Inmana.get_supply(uuid) do
+      conn
+      |> put_status(:ok)
+      |> render("show.json", supply: supply)
+    end
+  end
+end
+```
+
+### Supplies route
+```elixir
+# lib/inmana_web/router.ex
+
+scope "/api", InmanaWeb do
+  pipe_through :api
+
+  get "/", WelcomeController, :index
+
+  post "/restaurants", RestaurantsController, :create
+
+  # add this line:
+  resources "/supplies", SuppliesController, only: [:create, :show]
+end
+```
+Looking at all the routes
+```bash
+$ mix phx.routes
+       welcome_path  GET   /api                    InmanaWeb.WelcomeController :index
+   restaurants_path  POST  /api/restaurants        InmanaWeb.RestaurantsController :create
+      supplies_path  GET   /api/supplies/:id       InmanaWeb.SuppliesController :show
+      supplies_path  POST  /api/supplies           InmanaWeb.SuppliesController :create
+live_dashboard_path  GET   /dashboard              Phoenix.LiveView.Plug :home
+live_dashboard_path  GET   /dashboard/:page        Phoenix.LiveView.Plug :page
+live_dashboard_path  GET   /dashboard/:node/:page  Phoenix.LiveView.Plug :page
+          websocket  WS    /live/websocket         Phoenix.LiveView.Socket
+           longpoll  GET   /live/longpoll          Phoenix.LiveView.Socket
+           longpoll  POST  /live/longpoll          Phoenix.LiveView.Socket
+          websocket  WS    /socket/websocket       InmanaWeb.UserSocket
+```
+
+### Supplies view
+```elixir
+# lib/inmana_web/views/supplies_view.ex
+
+defmodule InmanaWeb.SuppliesView do
+  use InmanaWeb, :view
+
+  def render("create.json", %{supply: supply}) do
+    %{
+      message: "Supply created!",
+      supply: supply
+    }
+  end
+end
+```
+
+### Supplies error view
+```elixir
+# lib/inmana_web/views/error_view.ex
+
+def render("error.json", %{result: %Ecto.Changeset{} = changeset}) do
+  %{message: translate_errors(changeset)}
+end
+
+# add this line
+def render("error.json", %{result: result}) do
+  %{message: result}
+end
+```
+
+### Install bamboo
+https://github.com/thoughtbot/bamboo
+```elixir
+# mix.exs
+
+def deps do
+  [{:bamboo, "~> 2.1.0"}]
+end
+```
+```elixir
+# config/config.exs
+
+config :inmana, Inmana.Mailer, adapter: Bamboo.LocalAdapter
+```
+```elixir
+# config/test.exs
+
+config :inmana, Inmana.Mailer, adapter: Bamboo.TestAdapter
+```
+
+### Mailer
+```elixir
+# lib/inmana/mailer.ex
+
+defmodule Inmana.Mailer do
+  use Bamboo.Mailer, otp_app: :inmana
+end
+```
+
+### Expiration notification
+```elixir
+# lib/inmana/supplies/expiration_notification.ex
+
+defmodule Inmana.Supplies.ExpirationNotification do
+  alias Inmana.Mailer
+  alias Inmana.Supplies.{ExpirationEmail, GetByExpiration}
+
+  def send do
+    data = GetByExpiration.call()
+
+    Enum.each(data, fn {to_email, supplies} ->
+      to_email
+      |> ExpirationEmail.create(supplies)
+      |> Mailer.deliver_later!()
+    end)
+  end
+end
+```
+
+### Expiration email
+```elixir
+# lib/inmana/supplies/expiration_email.ex
+
+defmodule Inmana.Supplies.ExpirationEmail do
+  import Bamboo.Email
+
+  alias Inmana.Supply]
+
+  def create(to_email, supplies) do
+    new_email(
+      to: to_email,
+      from: "app@inmana.com.br",
+      subject: "Supplies that are about to expire",
+      text_body: email_text(supplies)
+    )
+  end
+
+  defp email_text(supplies) do
+    initial_text = "-------- Supplies that are about to expire: --------\n"
+
+    Enum.reduce(supplies, initial_text, fn supply, text -> text <> supply_string(supply) end)
+  end
+
+  defp supply_string(%Supply{
+         description: description,
+         expiration_date: expiration_date,
+         responsible: responsible
+       }) do
+    "Description: #{description},
+    Expiration Date: #{expiration_date}
+    Responsible: #{responsible} \n"
+  end
+end
+```
+
+### Sending email
+```elixir
+# lib/inmana_web/router.ex
+
+# put at the end of the file
+if Mix.env() == :dev do
+  forward "/sent_emails", Bamboo.SentEmailViewerPlug
+end
+```
+```bash
+$ iex -S mix phx.server
+```
+```bash
+iex> Inmana.Supplies.ExpirationNotification.send()
+```
+visit: http://localhost:4000/sent_emails
+
+
 
 <br />
 
