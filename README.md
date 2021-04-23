@@ -26,6 +26,7 @@
 * Phoenix Web Framework
 * Credo - a static code analysis tool for the Elixir language with a focus on teaching and code consistency.
 * Bamboo - to send emails
+* ExCoveralls - An Elixir library that reports test coverage statistics, with the option to post to coveralls.io service.
 
 <br>
 
@@ -92,6 +93,13 @@ Made with ♥ by Maiqui Tomé 😀
   - [Task](#Task)
   - [Genservers](#Genservers)
   - [Supervisor](#Supervisor)
+* [VIDEO 5: Tests](#VIDEO-5-Tests)
+  - [Welcomer test](#Welcomer-test)
+  - [Restaurant test (Changeset)](#Restaurant-test)
+  - [Restaurants Controller test](#Restaurants-Controller-test)
+  - [Restaurants view test](#Restaurants-view-test)
+  - [Install ExCoveralls](#Install-ExCoveralls)
+
 
 <div align="center">
 
@@ -990,6 +998,208 @@ def start(_type, _args) do
 end
 ```
 
+
+<div align="center">
+
+  # VIDEO 5: Tests
+
+</div>
+
+### Welcomer test
+```elixir
+# test/inmana/welcomer_test.exs
+
+defmodule Inmana.WelcomerTest do
+  use ExUnit.Case
+
+  alias Inmana.Welcomer
+
+  describe "welcome/1" do
+    test "When the user is special, returns a special message" do
+      params = %{"name" => "banana", "age" => "42"}
+      expected_result = {:ok, "You are very special banana"}
+
+      result = Welcomer.welcome(params)
+
+      assert result == expected_result
+    end
+
+    test "when the user is not special, returns a message" do
+      params = %{"name" => "maiqui", "age" => "25"}
+      expected_result = {:ok, "Welcome maiqui"}
+
+      result = Welcomer.welcome(params)
+
+      assert result == expected_result
+    end
+
+    test "when the user is under age, returns an error" do
+      params = %{"name" => "maiqui", "age" => "17"}
+      expected_result = {:error, "You shall not pass maiqui"}
+
+      result = Welcomer.welcome(params)
+
+      assert result == expected_result
+    end
+  end
+end
+```
+
+### Restaurant test
+```elixir
+# test/inmana/restaurant_test.exs
+
+defmodule Inmana.RestaurantTest do
+  use Inmana.DataCase
+
+  alias Ecto.Changeset
+  alias Inmana.Restaurant
+
+  describe "changeset/1" do
+    test "when all params are valid, returns a valid changeset" do
+      params = %{name: "Siri cascudo", email: "siri@cascudo.com"}
+
+      response = Restaurant.changeset(params)
+
+      assert %Changeset{
+               changes: %{
+                 email: "siri@cascudo.com",
+                 name: "Siri cascudo"
+               },
+               valid?: true
+             } = response
+    end
+
+    test "when there are invalid params, returns an invalid changeset" do
+      params = %{name: "S", email: ""}
+
+      expected_response = %{
+        email: ["can't be blank"],
+        name: ["should be at least 2 character(s)"]
+      }
+
+      response = Restaurant.changeset(params)
+
+      assert %Changeset{valid?: false} = response
+
+      assert errors_on(response) == expected_response
+    end
+  end
+end
+```
+
+### Restaurants Controller test
+```elixir
+# test/inamana_web/controllers/restaurants_controller_test.exs
+
+defmodule InmanaWeb.RestaurantsControllerTest do
+  use InmanaWeb.ConnCase
+
+  describe "create/2" do
+    test "when all params are valid, creates the user", %{conn: conn} do
+      params = %{name: "Siri cascudo", email: "siri@cascudo.com"}
+
+      response =
+        conn
+        |> post(Routes.restaurants_path(conn, :create, params))
+        |> json_response(:created)
+
+      assert %{
+               "message" => "Restaurant created!",
+               "restaurant" => %{
+                 "email" => "siri@cascudo.com",
+                 "id" => _id,
+                 "name" => "Siri cascudo"
+               }
+             } = response
+    end
+
+    test "when there are invalid params, returns an error", %{conn: conn} do
+      params = %{email: "siri@cascudo.com"}
+
+      expected_response = %{"message" => %{"name" => ["can't be blank"]}}
+
+      response =
+        conn
+        |> post(Routes.restaurants_path(conn, :create, params))
+        |> json_response(:bad_request)
+
+      assert response == expected_response
+    end
+  end
+end
+```
+
+
+### Restaurants view test
+```elixir
+# test/inamana_web/views/restaurants_view_test.exs
+
+defmodule InmanaWeb.RestaurantsViewTest do
+  use InmanaWeb.ConnCase, async: true
+
+  import Phoenix.View
+
+  alias Inmana.Restaurant
+  alias InmanaWeb.RestaurantsView
+
+  describe "render/2" do
+    test "renders create.json" do
+      params = %{name: "Siri cascudo", email: "siri@cascudo.com"}
+      {:ok, restaurant} = Inmana.create_restaurant(params)
+
+      response = render(RestaurantsView, "create.json", restaurant: restaurant)
+
+      assert %{
+               message: "Restaurant created!",
+               restaurant: %Restaurant{
+                 email: "siri@cascudo.com",
+                 id: _id,
+                 name: "Siri cascudo"
+               }
+             } = response
+    end
+  end
+end
+```
+
+### Install ExCoveralls
+https://github.com/parroty/excoveralls
+```elixir
+# mix.exs
+def project do
+  [
+    app: :excoveralls,
+    version: "1.0.0",
+    elixir: "~> 1.0.0",
+    deps: deps(),
+
+    # add this lines:
+    test_coverage: [tool: ExCoveralls],
+    preferred_cli_env: [
+      coveralls: :test,
+      "coveralls.detail": :test,
+      "coveralls.post": :test,
+      "coveralls.html": :test
+    ]
+  ]
+end
+
+defp deps do
+  [
+    {:excoveralls, "~> 0.10", only: :test},
+  ]
+end
+```
+```bash
+$ mix test --cover
+```
+```bash
+$ mix coveralls.html
+```
+1. copy path in *cover/excoveralls.html*
+2. example: file://wsl%24/Ubuntu-20.04/home/maiqui/elixir/rocketseat/nlw5/inmana/cover/excoveralls.html
+3. put it in the browser
 
 <br />
 
